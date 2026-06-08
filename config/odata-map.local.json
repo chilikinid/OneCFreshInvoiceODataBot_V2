@@ -1,0 +1,180 @@
+{
+  "ZeroGuid": "00000000-0000-0000-0000-000000000000",
+  "DefaultOrganizationKey": "",
+  "DefaultWarehouseKey": "",
+  "DefaultBankAccountKey": "",
+  "Counterparties": {
+    "EntitySet": "Catalog_Контрагенты",
+    "KeyField": "Ref_Key",
+    "DescriptionField": "Description",
+    "InnField": "ИНН",
+    "CreateIfMissing": true,
+    "DefaultFields": {
+    }
+  },
+  "CounterpartyEnrichment": {
+    "Enabled": true,
+    "Url": "https://api.orgregister.1c.ru/rest/corporation/v1/find-corporation-by-inn",
+    "TimeoutSeconds": 30,
+    "AuthorizationHeader": ""
+  },
+  "BankAccounts": {
+    "EntitySet": "Catalog_БанковскиеСчета",
+    "KeyField": "Ref_Key",
+    "DescriptionField": "Description",
+    "AccountNumberField": "НомерСчета",
+    "BankKeyField": "Банк_Key",
+    "DeletionMarkField": "DeletionMark",
+    "OwnerField": "Owner",
+    "OwnerTypeField": "Owner_Type",
+    "OwnerTypeValue": "StandardODATA.Catalog_Организации"
+  },
+  "Banks": {
+    "EntitySet": "Catalog_Банки",
+    "KeyField": "Ref_Key",
+    "DescriptionField": "Description"
+  },
+  "Organizations": {
+    "EntitySet": "Catalog_Организации",
+    "KeyField": "Ref_Key",
+    "DescriptionField": "Description",
+    "InnField": "ИНН",
+    "BankAccountKeyField": "ОсновнойБанковскийСчет_Key"
+  },
+  "Agreements": {
+    "EntitySet": "Catalog_ДоговорыКонтрагентов",
+    "KeyField": "Ref_Key",
+    "DescriptionField": "Description",
+    "OwnerKeyField": "Owner_Key",
+    "CreateIfMissing": true,
+    "DefaultFields": {
+    }
+  },
+  "Nomenclature": {
+    "EntitySet": "Catalog_Номенклатура",
+    "KeyField": "Ref_Key",
+    "DescriptionField": "Description",
+    "ServiceFlagField": "Услуга",
+    "CreateIfMissing": true,
+    "DefaultFields": {
+      "Услуга": true
+    }
+  },
+  "AccountLookup": {
+    "Enabled": true,
+    "EntitySet": "AccountingRegister_Хозрасчетный",
+    "FunctionName": "RecordsWithExtDimensions",
+    "Condition": "",
+    "StartPeriod": "2000-01-01T00:00:00",
+    "EndPeriod": "2100-01-01T00:00:00",
+    "NomenclatureKeyFields": [
+      "ExtDimensionDr1",
+      "ExtDimensionDr2",
+      "ExtDimensionDr3",
+      "ExtDimensionCr1",
+      "ExtDimensionCr2",
+      "ExtDimensionCr3"
+    ],
+    "OrganizationKeyField": "Организация_Key",
+    "OrderByField": "Period DESC",
+    "Top": 5000,
+    "Required": true,
+    "LearnDefaultsFromFoundAccounts": true,
+    "LineFields": {
+      "СчетДоходов_Key": "AccountCr_Key",
+      "СчетРасходов_Key": "AccountDr_Key",
+      "СчетУчетаНДСПоРеализации_Key": "AccountCr_Key"
+    },
+    "DefaultFieldsForServices": {
+    },
+    "DefaultFieldsForGoods": {
+    }
+  },
+  "Invoice": {
+    "EntitySet": "Document_СчетНаОплатуПокупателю",
+    "KeyField": "Ref_Key",
+    "NumberField": "Number",
+    "DateField": "Date",
+    "PostedField": "Posted",
+    "CounterpartyKeyField": "Контрагент_Key",
+    "AgreementKeyField": "ДоговорКонтрагента_Key",
+    "OrganizationKeyField": "Организация_Key",
+    "RecipientOrganizationKeyField": "ОрганизацияПолучатель_Key",
+    "WarehouseKeyField": "Склад_Key",
+    "BankAccountKeyField": "СтруктурнаяЕдиница_Key",
+    "OrganizationFieldMappings": {
+      "ДополнительныеУсловия_Key": "ДополнительныеУсловияПоУмолчанию_Key",
+      "ЗаголовокСчета_Key": "ЗаголовокСчетаПоУмолчанию_Key"
+    },
+    "DefaultFields": {
+    },
+    "GoodsTablePart": "Товары",
+    "LineNumberField": "LineNumber",
+    "ItemKeyField": "",
+    "NomenclatureField": "Номенклатура",
+    "NomenclatureTypeField": "Номенклатура_Type",
+    "QuantityField": "Количество",
+    "PriceField": "Цена",
+    "AmountField": "Сумма",
+    "VatRateField": "СтавкаНДС",
+    "VatAmountField": "СуммаНДС"
+  },
+  "Realization": {
+    "EntitySet": "Document_РеализацияТоваровУслуг",
+    "KeyField": "Ref_Key",
+    "NumberField": "Number",
+    "DateField": "Date",
+    "PostedField": "Posted",
+    "CounterpartyKeyField": "Контрагент_Key",
+    "AgreementKeyField": "ДоговорКонтрагента_Key",
+    "OrganizationKeyField": "Организация_Key",
+    "WarehouseKeyField": "Склад_Key",
+    "InvoiceKeyField": "СчетНаОплатуПокупателю_Key",
+    "OperationKindField": "ВидОперации",
+    "OperationKindValue": "Услуги",
+    "UseUpdField": "ВидЭлектронногоДокумента",
+    "UseUpdValue": "УПД",
+    "UseUpdFlagField": "ЭтоУниверсальныйДокумент",
+    "GoodsTablePart": "Товары",
+    "LineNumberField": "LineNumber",
+    "ItemKeyField": "Номенклатура_Key",
+    "NomenclatureField": "",
+    "NomenclatureTypeField": "",
+    "QuantityField": "Количество",
+    "PriceField": "Цена",
+    "AmountField": "Сумма",
+    "VatRateField": "СтавкаНДС",
+    "VatAmountField": "СуммаНДС"
+  },
+  "IssuedInvoice": {
+    "Enabled": true,
+    "EntitySet": "Document_СчетФактураВыданный",
+    "KeyField": "Ref_Key",
+    "NumberField": "Number",
+    "DocumentKindField": "ВидСчетаФактуры",
+    "DocumentKindValue": "НаРеализацию",
+    "BasisDocumentField": "ДокументОснование",
+    "BasisDocumentTypeField": "ДокументОснование_Type",
+    "BasisDocumentTypeValue": "StandardODATA.Document_РеализацияТоваровУслуг",
+    "BasisTablePart": "ДокументыОснования",
+    "ShipmentTablePart": "ДокументыОбОтгрузке",
+    "OperationCodeField": "КодВидаОперации",
+    "OperationCodeValue": "01",
+    "IssuedField": "Выставлен",
+    "IssueDateField": "ДатаВыставления",
+    "IssueMethodCodeField": "КодСпособаВыставления",
+    "IssueMethodCodeValue": 1,
+    "WithoutVatField": "СчетФактураБезНДС",
+    "AmountField": "СуммаДокумента",
+    "VatAmountField": "СуммаНДСДокумента"
+  },
+  "VatRates": {
+    "": "БезНДС",
+    "БезНДС": "БезНДС",
+    "Без НДС": "БезНДС",
+    "20%": "НДС20",
+    "10%": "НДС10",
+    "5%": "НДС5",
+    "0%": "НДС0"
+  }
+}
