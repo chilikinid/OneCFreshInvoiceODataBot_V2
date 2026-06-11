@@ -1,16 +1,13 @@
 using ClosedXML.Excel;
 using DocumentFormat.OpenXml.Packaging;
-using Microsoft.Extensions.Logging.Abstractions;
 using OneCFreshInvoiceODataBot.Models;
 using OneCFreshInvoiceODataBot.Services;
-using System.Net;
 using System.Text;
 
 TestExcelReaderUsesCounterpartyNameForNewReferences();
 TestCounterpartyEnrichmentMapsOrgRegisterResponse();
 await TestDocxPrintFormGeneratorCreatesInvoiceDocument();
 await TestDocxPrintFormGeneratorCreatesRealizationDocuments();
-await TestOneCPrintPdfProviderDownloadsInvoicePdf();
 TestTaxableInvoiceUsesCalculatedVat();
 TestWithoutVatInvoiceSetsDocumentFlag();
 TestTaxableRealizationUsesCalculatedVat();
@@ -131,6 +128,7 @@ static async Task TestDocxPrintFormGeneratorCreatesInvoiceDocument()
     {
         var generator = new DocxPrintFormGenerator();
         var path = await generator.CreateInvoiceAsync(
+            new InvoicePrintFormRequest(
             invoice,
             new ODataEntity
             {
@@ -153,8 +151,8 @@ static async Task TestDocxPrintFormGeneratorCreatesInvoiceDocument()
                     ["Адрес"] = "140108, Московская область, г. Раменское, ул. Михаилевича, д. 51А"
                 }
             },
-            agreement: null,
-            bankAccount: new ODataEntity
+            null,
+            new ODataEntity
             {
                 Description = "40702810900000000001",
                 Raw = new Dictionary<string, object?>
@@ -168,8 +166,8 @@ static async Task TestDocxPrintFormGeneratorCreatesInvoiceDocument()
                     }
                 }
             },
-            documentNumber: "A-15",
-            outputDir,
+            "A-15",
+            outputDir),
             CancellationToken.None);
 
         AssertEqual(true, File.Exists(path), "файл печатной формы счета");
@@ -225,22 +223,24 @@ static async Task TestDocxPrintFormGeneratorCreatesRealizationDocuments()
         };
 
         var actPath = await generator.CreateRealizationAsync(
+            new RealizationPrintFormRequest(
             "Act",
             invoice,
             organization,
             buyer,
-            agreement: null,
-            documentNumber: "ACT-15",
-            outputDir,
+            null,
+            "ACT-15",
+            outputDir),
             CancellationToken.None);
         var updPath = await generator.CreateRealizationAsync(
+            new RealizationPrintFormRequest(
             "\u0423\u041F\u0414",
             invoice,
             organization,
             buyer,
-            agreement: null,
-            documentNumber: "UPD-15",
-            outputDir,
+            null,
+            "UPD-15",
+            outputDir),
             CancellationToken.None);
 
         AssertEqual(true, File.Exists(actPath), "act print form file");
@@ -268,58 +268,6 @@ static async Task TestDocxPrintFormGeneratorCreatesRealizationDocuments()
         AssertContains(updText, "(8)");
         AssertContains(updText, "Главный бухгалтер");
         AssertContains(updText, "Дата получения");
-    }
-    finally
-    {
-        if (Directory.Exists(outputDir))
-            Directory.Delete(outputDir, recursive: true);
-    }
-}
-
-static async Task TestOneCPrintPdfProviderDownloadsInvoicePdf()
-{
-    var outputDir = Path.Combine(Path.GetTempPath(), $"onec-pdf-provider-{Guid.NewGuid():N}");
-    var requests = new List<string>();
-    using var http = new HttpClient(new StubHttpMessageHandler(async request =>
-    {
-        requests.Add(await request.Content!.ReadAsStringAsync());
-        return new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new ByteArrayContent("%PDF-1.7\n%test"u8.ToArray())
-        };
-    }));
-
-    try
-    {
-        var provider = new OneCPrintPdfProvider(
-            new PrintServiceSettings
-            {
-                Enabled = true,
-                Url = "https://example.test/hs/odata-bot-print/print"
-            },
-            new ODataMap
-            {
-                Invoice = new DocumentMap { EntitySet = "Document_СчетНаОплатуПокупателю" }
-            },
-            new ProcessingSettings { OutputDir = outputDir },
-            NullLogger<OneCPrintPdfProvider>.Instance,
-            http);
-
-        var files = await provider.GetPdfFilesAsync(
-            [
-                new ProcessingResult
-                {
-                    Status = "Success",
-                    InvoiceRefKey = "11111111-1111-1111-1111-111111111111",
-                    InvoiceNumber = "INV-1"
-                }
-            ],
-            CancellationToken.None);
-
-        AssertEqual(1, files.Count, "количество PDF");
-        AssertEqual(true, File.Exists(files[0]), "PDF файл");
-        AssertContains(requests.Single(), "Document_");
-        AssertContains(requests.Single(), "11111111-1111-1111-1111-111111111111");
     }
     finally
     {
@@ -580,15 +528,3 @@ static void AssertContains(string text, string expected)
         throw new InvalidOperationException($"Ожидался текст '{expected}', но его нет в документе.");
 }
 
-sealed class StubHttpMessageHandler : HttpMessageHandler
-{
-    private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
-
-    public StubHttpMessageHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler)
-    {
-        _handler = handler;
-    }
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        => _handler(request);
-}

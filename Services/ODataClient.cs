@@ -63,7 +63,7 @@ public sealed class ODataClient : IDisposable
         if (!doc.RootElement.TryGetProperty("value", out var value) || value.ValueKind != JsonValueKind.Array)
             throw new InvalidOperationException($"OData GET {entitySet}: в ответе нет массива value. Ответ: {body}");
 
-        return value.EnumerateArray().Select(ToDictionary).ToList();
+        return value.EnumerateArray().Select(_ToDictionary).ToList();
     }
 
     public async Task<IReadOnlyList<Dictionary<string, object?>>> QueryFunctionAsync(
@@ -86,7 +86,7 @@ public sealed class ODataClient : IDisposable
         if (!doc.RootElement.TryGetProperty("value", out var value) || value.ValueKind != JsonValueKind.Array)
             throw new InvalidOperationException($"OData GET {entitySet}/{functionName}: в ответе нет массива value. Ответ: {body}");
 
-        return value.EnumerateArray().Select(ToDictionary).ToList();
+        return value.EnumerateArray().Select(_ToDictionary).ToList();
     }
 
     public async Task<Dictionary<string, object?>> CreateAsync(string entitySet, Dictionary<string, object?> payload, CancellationToken ct)
@@ -100,7 +100,7 @@ public sealed class ODataClient : IDisposable
             throw new InvalidOperationException($"OData POST {entitySet} вернул {(int)response.StatusCode} {response.ReasonPhrase}\nPayload:\n{json}\nResponse:\n{body}");
 
         using var doc = JsonDocument.Parse(body);
-        return ToDictionary(doc.RootElement);
+        return _ToDictionary(doc.RootElement);
     }
 
     public async Task PostDocumentAsync(string entitySet, string refKey, CancellationToken ct)
@@ -115,27 +115,27 @@ public sealed class ODataClient : IDisposable
             throw new InvalidOperationException($"OData Post() для {entitySet}({refKey}) вернул {(int)response.StatusCode} {response.ReasonPhrase}\n{body}");
     }
 
-    public static string EqString(string field, string value) => $"{field} eq '{EscapeODataString(value)}'";
+    public static string EqString(string field, string value) => $"{field} eq '{_EscapeODataString(value)}'";
     public static string EqBool(string field, bool value) => $"{field} eq {value.ToString().ToLowerInvariant()}";
     public static string ByPeriod(string field, DateOnly fromDate, DateOnly toDate) => $"{field} ge datetime'{fromDate:yyyy-MM-dd}T00:00:00' and {field} le datetime'{toDate:yyyy-MM-dd}T23:59:59'";
-    public static string EqGuid(string field, string value) => $"{field} eq guid'{EscapeODataString(value)}'";
-    public static string FunctionString(string value) => $"'{EscapeODataString(value)}'";
-    public static string FunctionDateTime(string value) => $"datetime'{EscapeODataString(value)}'";
+    public static string EqGuid(string field, string value) => $"{field} eq guid'{_EscapeODataString(value)}'";
+    public static string FunctionString(string value) => $"'{_EscapeODataString(value)}'";
+    public static string FunctionDateTime(string value) => $"datetime'{_EscapeODataString(value)}'";
     public static string FunctionInt(int value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
     public static string And(params string[] parts) => string.Join(" and ", parts.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => $"({p})"));
     public static string Or(params string[] parts) => string.Join(" or ", parts.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => $"({p})"));
 
-    private static string EscapeODataString(string value) => value.Replace("'", "''");
+    private static string _EscapeODataString(string value) => value.Replace("'", "''");
 
-    private static Dictionary<string, object?> ToDictionary(JsonElement element)
+    private static Dictionary<string, object?> _ToDictionary(JsonElement element)
     {
         var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in element.EnumerateObject())
-            result[property.Name] = ToObject(property.Value);
+            result[property.Name] = _ToObject(property.Value);
         return result;
     }
 
-    private static object? ToObject(JsonElement element) => element.ValueKind switch
+    private static object? _ToObject(JsonElement element) => element.ValueKind switch
     {
         JsonValueKind.String => element.GetString(),
         JsonValueKind.Number when element.TryGetInt64(out var l) => l,
@@ -143,8 +143,8 @@ public sealed class ODataClient : IDisposable
         JsonValueKind.True => true,
         JsonValueKind.False => false,
         JsonValueKind.Null => null,
-        JsonValueKind.Array => element.EnumerateArray().Select(ToObject).ToList(),
-        JsonValueKind.Object => ToDictionary(element),
+        JsonValueKind.Array => element.EnumerateArray().Select(_ToObject).ToList(),
+        JsonValueKind.Object => _ToDictionary(element),
         _ => element.ToString()
     };
 

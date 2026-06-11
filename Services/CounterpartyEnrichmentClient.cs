@@ -12,7 +12,7 @@ public sealed class CounterpartyEnrichmentClient : IDisposable
 {
     private readonly CounterpartyEnrichmentMap _map;
     private readonly HttpClient _http;
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true
     };
@@ -48,7 +48,7 @@ public sealed class CounterpartyEnrichmentClient : IDisposable
         if (string.IsNullOrWhiteSpace(json))
             return null;
 
-        return JsonSerializer.Deserialize<CounterpartyEnrichmentDetails>(json, JsonOptions);
+        return JsonSerializer.Deserialize<CounterpartyEnrichmentDetails>(json, _jsonOptions);
     }
 
     public static Dictionary<string, object?> ApplyToPayload(
@@ -58,7 +58,7 @@ public sealed class CounterpartyEnrichmentClient : IDisposable
         string fallbackInn,
         string fallbackDescription)
     {
-        var description = FirstNonEmpty(
+        var description = _FirstNonEmpty(
             details?.Name?.ShortName,
             details?.Name?.CommonName,
             details?.Name?.ShortNameFromEgrul,
@@ -66,21 +66,21 @@ public sealed class CounterpartyEnrichmentClient : IDisposable
             fallbackInn);
 
         payload[map.DescriptionField] = description;
-        SetIfNotEmpty(payload, "НаименованиеПолное", FirstNonEmpty(details?.Name?.FullName, details?.Name?.FullNameFromEgrul));
-        SetIfNotEmpty(payload, map.InnField, FirstNonEmpty(details?.Inn, fallbackInn));
-        SetIfNotEmpty(payload, "КПП", details?.Kpp?.Value);
-        SetIfNotEmpty(payload, "РегистрационныйНомер", details?.Ogrn);
-        SetIfNotEmpty(payload, "КодГосударственногоОргана", details?.RegisteredStateAgencyCode);
+        _SetIfNotEmpty(payload, "НаименованиеПолное", _FirstNonEmpty(details?.Name?.FullName, details?.Name?.FullNameFromEgrul));
+        _SetIfNotEmpty(payload, map.InnField, _FirstNonEmpty(details?.Inn, fallbackInn));
+        _SetIfNotEmpty(payload, "КПП", details?.Kpp?.Value);
+        _SetIfNotEmpty(payload, "РегистрационныйНомер", details?.Ogrn);
+        _SetIfNotEmpty(payload, "КодГосударственногоОргана", details?.RegisteredStateAgencyCode);
 
         if (DateTime.TryParse(details?.RegistrationDate, out var registrationDate))
             payload["ДатаРегистрации"] = registrationDate.Date;
 
-        var extra = BuildExtraInfo(details);
-        SetIfNotEmpty(payload, "ДополнительнаяИнформация", extra);
+        var extra = _BuildExtraInfo(details);
+        _SetIfNotEmpty(payload, "ДополнительнаяИнформация", extra);
         return payload;
     }
 
-    private static string BuildExtraInfo(CounterpartyEnrichmentDetails? details)
+    private static string _BuildExtraInfo(CounterpartyEnrichmentDetails? details)
     {
         var parts = new List<string>();
         if (!string.IsNullOrWhiteSpace(details?.Status?.Name))
@@ -100,14 +100,14 @@ public sealed class CounterpartyEnrichmentClient : IDisposable
                 parts.Add($"Руководитель: {directorText}");
         }
 
-        var address = FirstNonEmpty(details?.Address?.ValueWithPostalCode, details?.Address?.Value);
+        var address = _FirstNonEmpty(details?.Address?.ValueWithPostalCode, details?.Address?.Value);
         if (!string.IsNullOrWhiteSpace(address))
             parts.Add($"Адрес: {address}");
 
         return string.Join("; ", parts);
     }
 
-    private static void SetIfNotEmpty(Dictionary<string, object?> payload, string field, object? value)
+    private static void _SetIfNotEmpty(Dictionary<string, object?> payload, string field, object? value)
     {
         if (string.IsNullOrWhiteSpace(field) || value is null)
             return;
@@ -118,7 +118,7 @@ public sealed class CounterpartyEnrichmentClient : IDisposable
         payload[field] = value;
     }
 
-    private static string FirstNonEmpty(params string?[] values)
+    private static string _FirstNonEmpty(params string?[] values)
         => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim() ?? string.Empty;
 
     public void Dispose()

@@ -26,12 +26,12 @@ public sealed class ProcessingSettings
     public bool DryRun { get; set; } = false;
     public bool DownloadMetadataOnly { get; set; } = false;
     public bool SendEmail { get; set; } = true;
-    public bool GeneratePdf { get; set; } = false;
     public bool GeneratePrintForms { get; set; } = true;
 
     public DateOnly? InvoiceFromDate { get; set; }
     public DateOnly? RealizationDate { get; set; }
-    public bool? RealizationOnly { get; set; }
+    public bool? ProcessExistingInvoices { get; set; }
+    public bool? Test { get; set; }
 
     public string INN { get; set; } = string.Empty;
     public bool CreateInvoicesOnly { get;  set; }
@@ -48,19 +48,9 @@ public sealed class MailSettings
     public string ResultEmail { get; set; } = string.Empty;
 }
 
-public sealed class PrintServiceSettings
-{
-    public bool Enabled { get; set; }
-    public string Url { get; set; } = string.Empty;
-    public string Login { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public int TimeoutSeconds { get; set; } = 120;
-}
-
 public sealed class AppSettings
 {
     public ODataSettings OData { get; set; } = new();
     public ProcessingSettings Processing { get; set; } = new();
     public MailSettings Mail { get; set; } = new();
-    public PrintServiceSettings PrintService { get; set; } = new();
 }

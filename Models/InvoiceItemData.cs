@@ -1,4 +1,4 @@
-﻿namespace OneCFreshInvoiceODataBot.Models;
+namespace OneCFreshInvoiceODataBot.Models;
 
 public class InvoiceItemData
 {

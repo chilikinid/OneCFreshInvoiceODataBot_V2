@@ -15,5 +15,4 @@ public sealed class ProcessingResult
     public string? Error { get; set; }
     public List<string> Attachments { get; } = [];
     public string? Number { get; internal set; }
-    public string InvoceRefKey { get; internal set; }
 }

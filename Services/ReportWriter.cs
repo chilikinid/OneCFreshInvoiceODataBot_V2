@@ -26,27 +26,27 @@ public static class ReportWriter
         sb.AppendLine("ExcelRow;CounterpartyInn;Nomenclature;Status;InvoiceNumber;InvoiceRefKey;RealizationNumber;RealizationRefKey;IssuedInvoiceNumber;IssuedInvoiceRefKey;Error");
         foreach (var r in results)
         {
-            sb.AppendJoin(';', new[]
-            {
+            sb.AppendJoin(';',
+            [
                 r.ExcelRowNumbers?.ToString() ?? string.Empty,
-                Escape(r.CounterpartyInn),
-                Escape(r.NomenclatureNames  ),
-                Escape(r.Status),
-                Escape(r.InvoiceNumber),
-                Escape(r.InvoiceRefKey),
-                Escape(r.RealizationNumber),
-                Escape(r.RealizationRefKey),
-                Escape(r.IssuedInvoiceNumber),
-                Escape(r.IssuedInvoiceRefKey),
-                Escape(r.Error)
-            }).AppendLine();
+                _Escape(r.CounterpartyInn),
+                _Escape(r.NomenclatureNames  ),
+                _Escape(r.Status),
+                _Escape(r.InvoiceNumber),
+                _Escape(r.InvoiceRefKey),
+                _Escape(r.RealizationNumber),
+                _Escape(r.RealizationRefKey),
+                _Escape(r.IssuedInvoiceNumber),
+                _Escape(r.IssuedInvoiceRefKey),
+                _Escape(r.Error)
+            ]).AppendLine();
         }
         File.WriteAllText(csvPath, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
         return jsonPath;
     }
 
-    private static string Escape(string? value)
+    private static string _Escape(string? value)
     {
         value ??= string.Empty;
         value = value.Replace("\r", " ").Replace("\n", " ");

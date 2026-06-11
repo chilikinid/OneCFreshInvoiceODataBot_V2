@@ -35,7 +35,6 @@
     <Compile Include="..\Services\ODataClient.cs" Link="Services\ODataClient.cs" />
     <Compile Include="..\Services\PayloadFactory.cs" Link="Services\PayloadFactory.cs" />
     <Compile Include="..\Services\PathResolver.cs" Link="Services\PathResolver.cs" />
-    <Compile Include="..\Services\PdfProvider.cs" Link="Services\PdfProvider.cs" />
     <Compile Include="..\Services\ReferenceResolver.cs" Link="Services\ReferenceResolver.cs" />
     <Compile Include="..\Services\ReportWriter.cs" Link="Services\ReportWriter.cs" />
   </ItemGroup>

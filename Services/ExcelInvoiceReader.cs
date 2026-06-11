@@ -3,12 +3,13 @@ using ClosedXML.Excel;
 using OneCFreshInvoiceODataBot.Models;
 
 using System.Globalization;
+using System.Linq;
 
 namespace OneCFreshInvoiceODataBot.Services;
 
 public sealed class ExcelInvoiceReader
 {
-    private static readonly string[] RequiredHeaders =
+    private static readonly string[] _requiredHeaders =
     [
         "Дата документа",
         "ИНН Контрагента",
@@ -30,12 +31,13 @@ public sealed class ExcelInvoiceReader
 
         var headerRow = used.FirstRowUsed();
         var headers = headerRow.CellsUsed()
-            .ToDictionary(c => NormalizeHeader(c.GetString()), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var header in RequiredHeaders)
+            .ToDictionary(c => _NormalizeHeader(c.GetString()), c => c.Address.ColumnNumber, StringComparer.OrdinalIgnoreCase);
+        var missingHeaders = _requiredHeaders
+            .Where(header => !headers.ContainsKey(_NormalizeHeader(header)))
+            .ToList();
+        if (missingHeaders.Count > 0)
         {
-            if (!headers.ContainsKey(NormalizeHeader(header)))
-                throw new InvalidOperationException($"В Excel нет обязательной колонки: '{header}'.");
+            throw new InvalidOperationException($"В Excel нет обязательных колонок: {string.Join(", ", missingHeaders.Select(h => $"'{h}'"))}.");
         }
 
         var result = new List<InvoiceData>();
@@ -45,10 +47,10 @@ public sealed class ExcelInvoiceReader
                 continue;
 
             var rowNumber = row.RowNumber();
-            var number = ReadString(row.Cell(headers[NormalizeHeader("Номер")]));
-            var documentDate = ReadDate(row.Cell(headers[NormalizeHeader("Дата документа")]));
-            var counterpartyInn = ReadInn(row.Cell(headers[NormalizeHeader("ИНН Контрагента")]));
-            var counterpartyName = ReadFirstOptionalString(row, headers,
+            var number = _ReadString(row.Cell(headers[_NormalizeHeader("Номер")]));
+            var documentDate = _ReadDate(row.Cell(headers[_NormalizeHeader("Дата документа")]));
+            var counterpartyInn = _ReadInn(row.Cell(headers[_NormalizeHeader("ИНН Контрагента")]));
+            var counterpartyName = _ReadFirstOptionalString(row, headers,
                 "Контрагент",
                 "Наименование Контрагента",
                 "Наименование контрагента",
@@ -56,15 +58,15 @@ public sealed class ExcelInvoiceReader
             if (string.IsNullOrWhiteSpace(counterpartyName))
                 counterpartyName = counterpartyInn;
 
-            var agreementName = ReadString(row.Cell(headers[NormalizeHeader("Договор")]));
-            var bankAccount = ReadOptionalString(row, headers, "Банковский счет");
+            var agreementName = _ReadString(row.Cell(headers[_NormalizeHeader("Договор")]));
+            var bankAccount = _ReadOptionalString(row, headers, "Банковский счет");
 
-            var nomenclatureName = ReadString(row.Cell(headers[NormalizeHeader("Номенклатура")]));
-            var nomenclatureDescription= ReadString(row.Cell(headers[NormalizeHeader("Номенклатура - описание")]));
-            var quantity = ReadDecimal(row.Cell(headers[NormalizeHeader("Количество")]), "Количество", rowNumber);
-            var price = ReadDecimal(row.Cell(headers[NormalizeHeader("Цена")]), "Цена", rowNumber);
-            var vatRate = ReadString(row.Cell(headers[NormalizeHeader("СтавкаНДС")]));
-            var vatAmount = ReadOptionalNullableDecimal(row, headers, "СуммаНДС", rowNumber);
+            var nomenclatureName = _ReadString(row.Cell(headers[_NormalizeHeader("Номенклатура")]));
+            var nomenclatureDescription= _ReadString(row.Cell(headers[_NormalizeHeader("Номенклатура - описание")]));
+            var quantity = _ReadDecimal(row.Cell(headers[_NormalizeHeader("Количество")]), "Количество", rowNumber);
+            var price = _ReadDecimal(row.Cell(headers[_NormalizeHeader("Цена")]), "Цена", rowNumber);
+            var vatRate = _ReadString(row.Cell(headers[_NormalizeHeader("СтавкаНДС")]));
+            var vatAmount = _ReadOptionalNullableDecimal(row, headers, "СуммаНДС", rowNumber);
 
             bool isNew = false;
 
@@ -100,7 +102,7 @@ public sealed class ExcelInvoiceReader
             };
             invoice.InvoiceItems.Add(invoiceItem);
 
-            Validate(invoice);
+            _Validate(invoice);
             if (isNew)
             {
                 result.Add(invoice);
@@ -113,22 +115,22 @@ public sealed class ExcelInvoiceReader
         return result;
     }
 
-    private static string NormalizeHeader(string value) => value.Trim().Replace("ё", "е", StringComparison.OrdinalIgnoreCase);
+    private static string _NormalizeHeader(string value) => value.Trim().Replace("ё", "е", StringComparison.OrdinalIgnoreCase);
 
-    private static string ReadString(IXLCell cell) => cell.GetFormattedString().Trim();
+    private static string _ReadString(IXLCell cell) => cell.GetFormattedString().Trim();
 
-    private static string ReadOptionalString(IXLRow row, IReadOnlyDictionary<string, int> headers, string header)
+    private static string _ReadOptionalString(IXLRow row, IReadOnlyDictionary<string, int> headers, string header)
     {
-        return headers.TryGetValue(NormalizeHeader(header), out var columnNumber)
-            ? ReadString(row.Cell(columnNumber))
+        return headers.TryGetValue(_NormalizeHeader(header), out var columnNumber)
+            ? _ReadString(row.Cell(columnNumber))
             : string.Empty;
     }
 
-    private static string ReadFirstOptionalString(IXLRow row, IReadOnlyDictionary<string, int> headers, params string[] headerNames)
+    private static string _ReadFirstOptionalString(IXLRow row, IReadOnlyDictionary<string, int> headers, params string[] headerNames)
     {
         foreach (var header in headerNames)
         {
-            var value = ReadOptionalString(row, headers, header);
+            var value = _ReadOptionalString(row, headers, header);
             if (!string.IsNullOrWhiteSpace(value))
                 return value;
         }
@@ -136,14 +138,14 @@ public sealed class ExcelInvoiceReader
         return string.Empty;
     }
 
-    private static string ReadInn(IXLCell cell)
+    private static string _ReadInn(IXLCell cell)
     {
         var value = cell.GetFormattedString().Trim();
         value = new string([.. value.Where(char.IsDigit)]);
         return value;
     }
 
-    private static DateTime ReadDate(IXLCell cell)
+    private static DateTime _ReadDate(IXLCell cell)
     {
         if (cell.TryGetValue<DateTime>(out var date))
             return date.Date;
@@ -158,7 +160,7 @@ public sealed class ExcelInvoiceReader
         throw new InvalidOperationException($"Не удалось прочитать дату из ячейки {cell.Address}: '{text}'.");
     }
 
-    private static decimal ReadDecimal(IXLCell cell, string fieldName, int rowNumber)
+    private static decimal _ReadDecimal(IXLCell cell, string fieldName, int rowNumber)
     {
         if (cell.TryGetValue<decimal>(out var value))
             return value;
@@ -170,7 +172,7 @@ public sealed class ExcelInvoiceReader
         throw new InvalidOperationException($"Строка {rowNumber}: поле '{fieldName}' должно быть числом. Значение: '{cell.GetFormattedString()}'.");
     }
 
-    private static decimal? ReadNullableDecimal(IXLCell cell, string fieldName, int rowNumber)
+    private static decimal? _ReadNullableDecimal(IXLCell cell, string fieldName, int rowNumber)
     {
         if (cell.DataType == XLDataType.Blank || string.IsNullOrWhiteSpace(cell.GetFormattedString())) return null;
 
@@ -184,19 +186,19 @@ public sealed class ExcelInvoiceReader
         throw new InvalidOperationException($"Строка {rowNumber}: поле '{fieldName}' должно быть числом. Значение: '{cell.GetFormattedString()}'.");
     }
 
-    private static decimal? ReadOptionalNullableDecimal(
+    private static decimal? _ReadOptionalNullableDecimal(
         IXLRow row,
         IReadOnlyDictionary<string, int> headers,
         string header,
         int rowNumber)
     {
-        return headers.TryGetValue(NormalizeHeader(header), out var columnNumber)
-            ? ReadNullableDecimal(row.Cell(columnNumber), header, rowNumber)
+        return headers.TryGetValue(_NormalizeHeader(header), out var columnNumber)
+            ? _ReadNullableDecimal(row.Cell(columnNumber), header, rowNumber)
             : null;
     }
 
 
-    private static void Validate(InvoiceData invoice)
+    private static void _Validate(InvoiceData invoice)
     {
         var errors = new List<string>();
         if (invoice.DocumentDate == default) errors.Add("дата документа не заполнена");
