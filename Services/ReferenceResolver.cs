@@ -4,10 +4,16 @@ using OneCFreshInvoiceODataBot.Models;
 
 namespace OneCFreshInvoiceODataBot.Services;
 
-public sealed class ReferenceResolver(ODataClient client, ODataMap map, CounterpartyEnrichmentClient? counterpartyEnrichmentClient = null)
+public sealed class ReferenceResolver(ODataClient client, ODataMap map, CounterpartyEnrichmentClient? counterpartyEnrichmentClient = null, CacheManager? cacheManager = null)
 {
+    private readonly CacheManager? _cacheManager = cacheManager;
     internal async Task<ODataEntity> FindOrganizationAsync(string inn, CancellationToken ct)
     {
+        // Проверяем кэш
+        var cached = _cacheManager?.GetOrganization(inn);
+        if (cached != null)
+            return cached;
+
         var m = map.Organizations;
         var filter = ODataClient.And(
             ODataClient.EqString(m.InnField, inn),
@@ -23,6 +29,9 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
             [m.BankAccountKeyField, .. map.Invoice.OrganizationFieldMappings.Values]);
         if (organization != null)
         {
+            // Сохраняем в кэш
+            _cacheManager?.CacheOrganization(inn, organization);
+
             map.DefaultOrganizationKey = organization.RefKey;
             if (!string.IsNullOrWhiteSpace(m.BankAccountKeyField)
                 && organization.Raw.TryGetValue(m.BankAccountKeyField, out var bankAccountKey)
@@ -53,9 +62,18 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
 
     public async Task<ODataEntity> ResolveCounterpartyByInnAsync(string inn, string description, CancellationToken ct)
     {
+        // Проверяем кэш в памяти
         if (CounterpartiesCache.TryGetValue(inn, out var counterparty))
         {
             return counterparty;
+        }
+
+        // Проверяем персистентный кэш
+        var cached = _cacheManager?.GetCounterparty(inn);
+        if (cached != null)
+        {
+            CounterpartiesCache[inn] = cached;
+            return cached;
         }
 
         var m = map.Counterparties;
@@ -74,6 +92,8 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
         }
 
         CounterpartiesCache[inn] = counterparty;
+        // Сохраняем в персистентный кэш
+        _cacheManager?.CacheCounterparty(inn, counterparty);
         return counterparty;
     }
 
@@ -115,6 +135,15 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
             return agreement;
         }
 
+        // Проверяем персистентный кэш с комбинированным ключом
+        var persistentCacheKey = $"{counterpartyRefKey}_{agreementName}";
+        var cached = _cacheManager?.GetAgreement(persistentCacheKey);
+        if (cached != null)
+        {
+            AgreementCache[cacheKey] = cached;
+            return cached;
+        }
+
         var m = map.Agreements;
         var filter = ODataClient.And(
             ODataClient.EqString(m.DescriptionField, agreementName),
@@ -138,6 +167,8 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
         }
 
         AgreementCache[cacheKey] = agreement;
+        // Сохраняем в персистентный кэш
+        _cacheManager?.CacheAgreement(persistentCacheKey, agreement);
         return agreement;
     }
 
@@ -161,6 +192,15 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
         var cacheKey = $"{organizationRefKey}|{bankAccount}";
         if (BankAccountEntityCache.TryGetValue(cacheKey, out var cachedEntity))
             return cachedEntity;
+
+        // Проверяем персистентный кэш
+        var persistentCacheKey = $"{organizationRefKey}_{bankAccount}";
+        var cached = _cacheManager?.GetBankAccount(persistentCacheKey);
+        if (cached != null)
+        {
+            BankAccountEntityCache[cacheKey] = cached;
+            return cached;
+        }
 
         var m = map.BankAccounts;
         if (string.IsNullOrWhiteSpace(m.EntitySet))
@@ -218,6 +258,10 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
         var entity = await _CreateBankAccountEntityAsync(selectedRow, selectedKey, ct);
         BankAccountEntityCache[cacheKey] = entity;
         BankAccountEntityCache[$"{organizationRefKey}|{selectedKey}"] = entity;
+
+        // Сохраняем в персистентный кэш
+        _cacheManager?.CacheBankAccount(persistentCacheKey, entity);
+
         return entity;
     }
 
@@ -377,6 +421,14 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
             return nomenclature;
         }
 
+        // Проверяем персистентный кэш
+        var cached = _cacheManager?.GetNomenclature(name);
+        if (cached != null)
+        {
+            NomenclatureCache[name] = cached;
+            return cached;
+        }
+
         var m = map.Nomenclature;
         var filter = ODataClient.And(
             ODataClient.EqString(m.DescriptionField, name),
@@ -394,16 +446,30 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
         }
 
         NomenclatureCache[name] = nomenclature;
+        // Сохраняем в персистентный кэш
+        _cacheManager?.CacheNomenclature(name, nomenclature);
         return nomenclature;
     }
 
     internal async Task<ODataEntity> FindNomenclatureByKeyAsync(string nomenclatureKey, CancellationToken ct)
     {
+        // Проверяем персистентный кэш
+        var cached = _cacheManager?.GetNomenclatureByKey(nomenclatureKey);
+        if (cached != null)
+            return cached;
+
         var m = map.Nomenclature;
         var filter = ODataClient.And(
             ODataClient.EqGuid(m.KeyField, nomenclatureKey),
             _ActiveReferenceFilter(m));
         var nomenclature = await _FindSingleAsync(m.EntitySet, filter, true, m.KeyField, m.DescriptionField, $"номенклатура '{nomenclatureKey}'", ct);
+
+        // Сохраняем в персистентный кэш
+        if (nomenclature != null)
+        {
+            _cacheManager?.CacheNomenclatureByKey(nomenclatureKey, nomenclature);
+        }
+
         return nomenclature;
     }
 
@@ -411,6 +477,12 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
     public async Task<ODataEntity?> FindAccountsByNomenclatureKeyAsync(ODataEntity nomenclature, CancellationToken ct, bool required = true)
     {
         var nomenclatureKey = nomenclature.RefKey;
+
+        // Проверяем персистентный кэш
+        var cached = _cacheManager?.GetAccount(nomenclatureKey);
+        if (cached != null)
+            return cached;
+
         var m = map.AccountLookup;
         if (!m.Enabled || string.IsNullOrWhiteSpace(m.EntitySet) || string.IsNullOrWhiteSpace(nomenclatureKey))
             return null;
@@ -459,6 +531,9 @@ public sealed class ReferenceResolver(ODataClient client, ODataMap map, Counterp
 
         if (m.LearnDefaultsFromFoundAccounts)
             DefaultAccountsByServiceFlag[_IsService(nomenclature)] = result;
+
+        // Сохраняем в персистентный кэш
+        _cacheManager?.CacheAccount(nomenclatureKey, result);
 
         return result;
     }

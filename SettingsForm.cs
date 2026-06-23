@@ -1,9 +1,12 @@
 using Microsoft.Extensions.Logging;
 
+using OneCFreshInvoiceODataBot.Services;
+
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 namespace OneCFreshInvoiceODataBot;
 
@@ -201,6 +204,8 @@ public sealed partial class SettingsForm : Form
         _AddBinding(ProcessingTabName, "INN", processingInnLabel, processingInnTextBox, SettingValueKind.String);
 
         _AddBinding(ODataTabName, "ServiceRoot", oDataServiceRootLabel, oDataServiceRootTextBox, SettingValueKind.String);
+        _AddBinding(ODataTabName, "DisplayName", null, lblAppName, SettingValueKind.String);
+        _AddBinding(ODataTabName, "AppId", null, lblAppId1C, SettingValueKind.String);
         _AddBinding(ODataTabName, "Login", oDataLoginLabel, oDataLoginTextBox, SettingValueKind.String);
         _AddBinding(ODataTabName, "Password", oDataPasswordLabel, oDataPasswordTextBox, SettingValueKind.String);
         _AddBinding(ODataTabName, "TimeoutSeconds", oDataTimeoutSecondsLabel, oDataTimeoutSecondsNumericUpDown, SettingValueKind.Integer);
@@ -229,7 +234,7 @@ public sealed partial class SettingsForm : Form
         _ApplyModeRules(sender as RadioButton);
     }
 
-    private void _AddBinding(string sectionName, string key, Control label, Control editor, SettingValueKind valueKind, params Control[]? alternativeEditors)
+    private void _AddBinding(string sectionName, string key, Control? label, Control editor, SettingValueKind valueKind, params Control[]? alternativeEditors)
     {
         if (!_bindingsBySection.TryGetValue(sectionName, out var bindings))
         {
@@ -264,12 +269,25 @@ public sealed partial class SettingsForm : Form
 
                 foreach (var binding in bindings)
                 {
-                    if (section.TryGetPropertyValue(binding.Key, out var value))
-                        _SetEditorValue(binding, value);
-                    else
-                        _SetEditorValue(binding, null);
+                    if (!section.TryGetPropertyValue(binding.Key, out var value))
+                    {
+                        if (binding.Key == "AppId")
+                        {
+                            string? serviceRoot = section["ServiceRoot"]?.GetValue<string>();
+                            if (serviceRoot != null)
+                            {
+                                value = UrlHelper.GetFreshId(serviceRoot);
+                            }
+                        }
+                        else
+                        {
+                            value = null;
+                        }
+                    }
+                    _SetEditorValue(binding, value);
                 }
             }
+
         }
         finally
         {
@@ -304,6 +322,9 @@ public sealed partial class SettingsForm : Form
                 break;
             case TextBox textBox:
                 textBox.Text = value?.GetValue<string>() ?? string.Empty;
+                break;
+            case Label label:
+                label.Text = value?.GetValue<string>() ?? string.Empty;
                 break;
             case DateTimePicker dateTimePicker:
                 if (_TryGetDate(value, out var date))
@@ -494,7 +515,6 @@ public sealed partial class SettingsForm : Form
             MessageBox.Show(this, ex.Message, "Не удалось открыть файл Excel", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
-
     private void _SettingsFileComboBox_SelectedIndexChanged(object? sender, EventArgs e)
     {
         if (_updatingSettingsFileList || settingsFileComboBox.SelectedItem is not string selectedPath)
@@ -701,7 +721,7 @@ public sealed partial class SettingsForm : Form
 
     private static void _SetBindingEnabled(SettingBinding binding, bool enabled)
     {
-        binding.Label.Enabled = enabled;
+        if(binding.Label != null) binding.Label.Enabled = enabled;
         binding.Editor.Enabled = enabled;
     }
 
@@ -778,7 +798,12 @@ public sealed partial class SettingsForm : Form
         return false;
     }
 
-    private sealed record SettingBinding(string SectionName, string Key, Control Label, Control Editor, SettingValueKind ValueKind, Control[]? AlternativeEditors);
+    private void SettingsForm_Load(object sender, EventArgs e)
+    {
+        lblWorkingDirectoryValue.Text = Application.StartupPath;
+    }
+
+    private sealed record SettingBinding(string SectionName, string Key, Control? Label, Control Editor, SettingValueKind ValueKind, Control[]? AlternativeEditors);
 
     private enum SettingValueKind
     {

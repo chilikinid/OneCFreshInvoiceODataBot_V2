@@ -1,11 +1,45 @@
+using OneCFreshInvoiceODataBot.Services;
+
+using System.Reflection.Metadata.Ecma335;
+
 namespace OneCFreshInvoiceODataBot.Models;
 
 public sealed class ODataSettings
 {
-    public string ServiceRoot { get; set; } = string.Empty;
+    public string ServiceRoot
+    {
+        get => serviceRoot;
+        set
+        {
+            if (serviceRoot != value)
+            {
+                _appId = null;
+                serviceRoot = value;
+            }
+
+        }
+    }
     public string Login { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public int TimeoutSeconds { get; set; } = 120;
+    public string? DisplayName { get; set; } = string.Empty;
+
+    private string? _appId = null;
+    private string serviceRoot = string.Empty;
+
+    public string? AppId
+    {
+        get
+        {
+            if (_appId == null && !string.IsNullOrWhiteSpace(serviceRoot))
+            {
+                _appId = UrlHelper.GetFreshId(serviceRoot);
+            }
+            return _appId;
+        }
+    }
+    public string CacheFolder { get => $"{AppId}-{DisplayName}"; }
+
 }
 
 public sealed class CounterpartyApiSettings
@@ -34,7 +68,7 @@ public sealed class ProcessingSettings
     public bool? Test { get; set; }
 
     public string INN { get; set; } = string.Empty;
-    public bool CreateInvoicesOnly { get;  set; }
+    public bool CreateInvoicesOnly { get; set; }
 }
 
 public sealed class MailSettings

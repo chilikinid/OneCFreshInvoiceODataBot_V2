@@ -90,9 +90,11 @@ partial class SettingsForm
         mainLayoutPanel = new TableLayoutPanel();
         settingsFileLayoutPanel = new TableLayoutPanel();
         settingsFileLabel = new Label();
-        settingsFileComboBox = new ComboBox();
         browseSettingsFileButton = new Button();
         workingDirectoryLabel = new Label();
+        lblAppId1C = new Label();
+        lblWorkingDirectoryValue = new Label();
+        settingsFileComboBox = new ComboBox();
         settingsTabControl = new TabControl();
         processingTabPage = new TabPage();
         processingSettingsPanel = new Panel();
@@ -162,6 +164,7 @@ partial class SettingsForm
         processingRealizationOnlyLabel = new Label();
         mailUseStartTlsLabel = new Label();
         workingDirectoryPathLabel = new Label();
+        lblAppName = new Label();
         mainLayoutPanel.SuspendLayout();
         settingsFileLayoutPanel.SuspendLayout();
         settingsTabControl.SuspendLayout();
@@ -201,14 +204,18 @@ partial class SettingsForm
         // settingsFileLayoutPanel
         // 
         settingsFileLayoutPanel.AutoSize = true;
-        settingsFileLayoutPanel.ColumnCount = 3;
+        settingsFileLayoutPanel.ColumnCount = 4;
         settingsFileLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
+        settingsFileLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 400F));
         settingsFileLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
         settingsFileLayoutPanel.ColumnStyles.Add(new ColumnStyle());
         settingsFileLayoutPanel.Controls.Add(settingsFileLabel, 0, 0);
-        settingsFileLayoutPanel.Controls.Add(settingsFileComboBox, 1, 0);
-        settingsFileLayoutPanel.Controls.Add(browseSettingsFileButton, 2, 0);
+        settingsFileLayoutPanel.Controls.Add(browseSettingsFileButton, 3, 0);
         settingsFileLayoutPanel.Controls.Add(workingDirectoryLabel, 0, 1);
+        settingsFileLayoutPanel.Controls.Add(lblAppId1C, 3, 1);
+        settingsFileLayoutPanel.Controls.Add(settingsFileComboBox, 1, 0);
+        settingsFileLayoutPanel.Controls.Add(lblWorkingDirectoryValue, 1, 1);
+        settingsFileLayoutPanel.Controls.Add(lblAppName, 2, 1);
         settingsFileLayoutPanel.Dock = DockStyle.Fill;
         settingsFileLayoutPanel.Location = new Point(15, 15);
         settingsFileLayoutPanel.Name = "settingsFileLayoutPanel";
@@ -228,18 +235,6 @@ partial class SettingsForm
         settingsFileLabel.TabIndex = 0;
         settingsFileLabel.Text = "Файл настроек";
         settingsFileLabel.TextAlign = ContentAlignment.MiddleLeft;
-        // 
-        // settingsFileComboBox
-        // 
-        settingsFileComboBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
-        settingsFileComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-        settingsFileComboBox.FormattingEnabled = true;
-        settingsFileComboBox.Location = new Point(163, 6);
-        settingsFileComboBox.MaxDropDownItems = 28;
-        settingsFileComboBox.Name = "settingsFileComboBox";
-        settingsFileComboBox.Size = new Size(544, 23);
-        settingsFileComboBox.TabIndex = 1;
-        settingsFileComboBox.SelectedIndexChanged += _SettingsFileComboBox_SelectedIndexChanged;
         // 
         // browseSettingsFileButton
         // 
@@ -263,6 +258,37 @@ partial class SettingsForm
         workingDirectoryLabel.TabIndex = 3;
         workingDirectoryLabel.Text = "Рабочая папка:";
         workingDirectoryLabel.TextAlign = ContentAlignment.MiddleLeft;
+        // 
+        // lblAppId1C
+        // 
+        lblAppId1C.AutoSize = true;
+        lblAppId1C.Location = new Point(713, 35);
+        lblAppId1C.Name = "lblAppId1C";
+        lblAppId1C.Size = new Size(39, 15);
+        lblAppId1C.TabIndex = 4;
+        lblAppId1C.Text = "AppId";
+        // 
+        // lblWorkingDirectoryValue
+        // 
+        lblWorkingDirectoryValue.AutoSize = true;
+        lblWorkingDirectoryValue.Location = new Point(163, 35);
+        lblWorkingDirectoryValue.Name = "lblWorkingDirectoryValue";
+        lblWorkingDirectoryValue.Size = new Size(50, 15);
+        lblWorkingDirectoryValue.TabIndex = 5;
+        lblWorkingDirectoryValue.Text = "WorkDir";
+        // 
+        // settingsFileComboBox
+        // 
+        settingsFileComboBox.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        settingsFileLayoutPanel.SetColumnSpan(settingsFileComboBox, 2);
+        settingsFileComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        settingsFileComboBox.FormattingEnabled = true;
+        settingsFileComboBox.Location = new Point(163, 6);
+        settingsFileComboBox.MaxDropDownItems = 28;
+        settingsFileComboBox.Name = "settingsFileComboBox";
+        settingsFileComboBox.Size = new Size(544, 23);
+        settingsFileComboBox.TabIndex = 1;
+        settingsFileComboBox.SelectedIndexChanged += _SettingsFileComboBox_SelectedIndexChanged;
         // 
         // settingsTabControl
         // 
@@ -578,7 +604,7 @@ partial class SettingsForm
         oDataTabPage.Location = new Point(4, 24);
         oDataTabPage.Name = "oDataTabPage";
         oDataTabPage.Padding = new Padding(3);
-        oDataTabPage.Size = new Size(822, 476);
+        oDataTabPage.Size = new Size(822, 471);
         oDataTabPage.TabIndex = 1;
         oDataTabPage.Text = "OData";
         oDataTabPage.UseVisualStyleBackColor = true;
@@ -591,7 +617,7 @@ partial class SettingsForm
         oDataSettingsPanel.Location = new Point(3, 3);
         oDataSettingsPanel.Name = "oDataSettingsPanel";
         oDataSettingsPanel.Padding = new Padding(8);
-        oDataSettingsPanel.Size = new Size(816, 470);
+        oDataSettingsPanel.Size = new Size(816, 465);
         oDataSettingsPanel.TabIndex = 0;
         // 
         // oDataTableLayoutPanel
@@ -691,7 +717,7 @@ partial class SettingsForm
         mailTabPage.Location = new Point(4, 24);
         mailTabPage.Name = "mailTabPage";
         mailTabPage.Padding = new Padding(3);
-        mailTabPage.Size = new Size(822, 476);
+        mailTabPage.Size = new Size(822, 471);
         mailTabPage.TabIndex = 2;
         mailTabPage.Text = "Mail";
         mailTabPage.UseVisualStyleBackColor = true;
@@ -704,7 +730,7 @@ partial class SettingsForm
         mailSettingsPanel.Location = new Point(3, 3);
         mailSettingsPanel.Name = "mailSettingsPanel";
         mailSettingsPanel.Padding = new Padding(8);
-        mailSettingsPanel.Size = new Size(816, 470);
+        mailSettingsPanel.Size = new Size(816, 465);
         mailSettingsPanel.TabIndex = 0;
         // 
         // mailTableLayoutPanel
@@ -1006,6 +1032,16 @@ partial class SettingsForm
         workingDirectoryPathLabel.Text = "C:\\Users\\chili\\AppData\\Local\\Microsoft\\VisualStudio\\18.0_e0186303\\WinFormsDesigner\\k0aayhfc.dxv";
         workingDirectoryPathLabel.TextAlign = ContentAlignment.MiddleLeft;
         // 
+        // lblAppName
+        // 
+        lblAppName.AutoSize = true;
+        lblAppName.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+        lblAppName.Location = new Point(563, 35);
+        lblAppName.Name = "lblAppName";
+        lblAppName.Size = new Size(62, 15);
+        lblAppName.TabIndex = 6;
+        lblAppName.Text = "AppName";
+        // 
         // SettingsForm
         // 
         AutoScaleDimensions = new SizeF(7F, 15F);
@@ -1016,6 +1052,7 @@ partial class SettingsForm
         Name = "SettingsForm";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "Настройки OneCFreshInvoiceODataBot";
+        Load += SettingsForm_Load;
         mainLayoutPanel.ResumeLayout(false);
         mainLayoutPanel.PerformLayout();
         settingsFileLayoutPanel.ResumeLayout(false);
@@ -1058,6 +1095,9 @@ partial class SettingsForm
     private Label processingInnLabel;
     private RadioButton rbFromExcel;
     private RadioButton rbFrom1C;
+    private Label lblAppId1C;
+    private Label lblWorkingDirectoryValue;
+    private Label lblAppName;
 }
 
 

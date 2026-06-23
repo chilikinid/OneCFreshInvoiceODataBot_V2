@@ -166,7 +166,8 @@ internal static class Program
         CounterpartyEnrichmentClient? counterpartyEnrichmentClient,
         ILoggerFactory loggerFactory)
     {
-        var resolver = new ReferenceResolver(odataClient, map, counterpartyEnrichmentClient);
+        var cacheManager = new CacheManager(settings.OData.CacheFolder );
+        var resolver = new ReferenceResolver(odataClient, map, counterpartyEnrichmentClient, cacheManager);
         var payloadFactory = new PayloadFactory(map);
         var processor = new InvoiceProcessor(
             odataClient,
@@ -201,7 +202,7 @@ internal static class Program
         DateOnly toDate = context.Settings.Processing.RealizationDate!.Value;
         var invoiceEntities = await context.Resolver.FindInvoicesByDateAsync(fromDate, toDate, ct);
         logger.LogInformation("Счетов сохраненных {Count}", invoiceEntities.Count);
-        await context.Processor.ProcessAsync(invoiceEntities, ct);
+        await context.Processor.ProcessExistingInvoicesAsync(invoiceEntities, ct);
         return 0;
     }
 
